@@ -1,0 +1,219 @@
+# ============================================
+# DeepTutor Cloud Run Dockerfile
+# ============================================
+# Optimized for Google Cloud Run deployment
+# - Single port (8080) via Nginx reverse proxy
+# - Reduced cold start time
+# - GCS volume mount support
+#
+# Build: gcloud builds submit --config=cloudbuild.yaml
+# ============================================
+
+# ============================================
+# Stage 1: Frontend Builder
+# ============================================
+FROM node:22-slim AS frontend-builder
+
+WORKDIR /app/web
+
+# Accept build argument for backend port
+ARG BACKEND_PORT=8001
+
+# Copy package files first for better caching
+COPY web/package.json web/package-lock.json* ./
+
+# Install dependencies
+RUN npm ci --legacy-peer-deps
+
+# Copy frontend source code
+COPY web/ ./
+
+# Create .env.local with placeholder that will be replaced at runtime
+# For Cloud Run, API calls go through nginx proxy on same origin
+RUN echo "NEXT_PUBLIC_API_BASE=/api" > .env.local
+
+# Build Next.js for production with standalone output
+RUN npm run build
+
+# ============================================
+# Stage 2: Python Base with Dependencies
+# ============================================
+FROM python:3.11-slim AS python-base
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONIOENCODING=utf-8 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    build-essential \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+# Add Rust to PATH
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt ./
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+# ============================================
+# Stage 3: Production Image for Cloud Run
+# ============================================
+FROM python:3.11-slim AS production
+
+# Labels
+LABEL maintainer="DeepTutor Team" \
+    description="DeepTutor: AI-Powered Learning Assistant (Cloud Run)" \
+    version="0.1.0-cloudrun"
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONIOENCODING=utf-8 \
+    NODE_ENV=production \
+    # Cloud Run uses PORT env var (default 8080)
+    PORT=8080 \
+    BACKEND_PORT=8001 \
+    FRONTEND_PORT=3782
+
+WORKDIR /app
+
+# Install system dependencies including nginx
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    bash \
+    supervisor \
+    nginx \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Node.js from frontend-builder stage
+COPY --from=frontend-builder /usr/local/bin/node /usr/local/bin/node
+COPY --from=frontend-builder /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && node --version && npm --version
+
+# Copy Python packages from builder stage
+COPY --from=python-base /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=python-base /usr/local/bin /usr/local/bin
+
+# Copy built frontend from frontend-builder stage
+COPY --from=frontend-builder /app/web/.next ./web/.next
+COPY --from=frontend-builder /app/web/public ./web/public
+COPY --from=frontend-builder /app/web/package.json ./web/package.json
+COPY --from=frontend-builder /app/web/next.config.js ./web/next.config.js
+COPY --from=frontend-builder /app/web/node_modules ./web/node_modules
+
+# Copy application source code
+COPY src/ ./src/
+COPY config/ ./config/
+COPY scripts/ ./scripts/
+COPY pyproject.toml ./
+COPY requirements.txt ./
+
+# Copy nginx configuration
+COPY nginx.cloudrun.conf /etc/nginx/nginx.conf
+
+# Create necessary directories
+RUN mkdir -p \
+    data/user/solve \
+    data/user/question \
+    data/user/research/cache \
+    data/user/research/reports \
+    data/user/guide \
+    data/user/notebook \
+    data/user/co-writer/audio \
+    data/user/co-writer/tool_calls \
+    data/user/logs \
+    data/user/run_code_workspace \
+    data/user/performance \
+    data/knowledge_bases \
+    /var/log/nginx \
+    /var/lib/nginx \
+    /tmp/nginx
+
+# Fix nginx permissions for non-root user
+RUN chown -R www-data:www-data /var/log/nginx /var/lib/nginx
+
+# Create supervisord configuration using printf to avoid Dockerfile parsing issues
+RUN mkdir -p /etc/supervisor/conf.d && \
+    printf '%s\n' \
+    '[supervisord]' \
+    'nodaemon=true' \
+    'logfile=/dev/null' \
+    'logfile_maxbytes=0' \
+    'pidfile=/tmp/supervisord.pid' \
+    'user=root' \
+    '' \
+    '[program:nginx]' \
+    'command=/usr/sbin/nginx -g "daemon off;"' \
+    'autostart=true' \
+    'autorestart=true' \
+    'stdout_logfile=/dev/fd/1' \
+    'stdout_logfile_maxbytes=0' \
+    'stderr_logfile=/dev/fd/2' \
+    'stderr_logfile_maxbytes=0' \
+    'priority=10' \
+    '' \
+    '[program:backend]' \
+    'command=/bin/bash -c "export PYTHONUNBUFFERED=1 && echo [BACKEND] Starting uvicorn... && cd /app && python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8001 --log-level info 2>&1"' \
+    'directory=/app' \
+    'autostart=true' \
+    'autorestart=true' \
+    'startsecs=60' \
+    'stdout_logfile=/dev/fd/1' \
+    'stdout_logfile_maxbytes=0' \
+    'stderr_logfile=/dev/fd/2' \
+    'stderr_logfile_maxbytes=0' \
+    'environment=PYTHONPATH="/app",PYTHONUNBUFFERED="1"' \
+    'priority=20' \
+    '' \
+    '[program:frontend]' \
+    'command=/bin/bash -c "cd /app/web && node node_modules/next/dist/bin/next start -H 127.0.0.1 -p ${FRONTEND_PORT:-3782}"' \
+    'directory=/app/web' \
+    'autostart=true' \
+    'autorestart=true' \
+    'startsecs=5' \
+    'stdout_logfile=/dev/fd/1' \
+    'stdout_logfile_maxbytes=0' \
+    'stderr_logfile=/dev/fd/2' \
+    'stderr_logfile_maxbytes=0' \
+    'environment=NODE_ENV="production"' \
+    'priority=30' \
+    > /etc/supervisor/conf.d/deeptutor.conf
+
+# Copy entrypoint script for Cloud Run
+COPY scripts/entrypoint.cloudrun.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Expose Cloud Run port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
+
+# Set entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]

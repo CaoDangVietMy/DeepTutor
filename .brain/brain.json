@@ -1,0 +1,228 @@
+{
+  "meta": {
+    "schema_version": "1.1.0",
+    "awf_version": "4.0.0",
+    "last_updated": "2026-01-26T14:50:00+07:00"
+  },
+  "project": {
+    "name": "DeepTutor",
+    "type": "ai-learning-platform",
+    "status": "active",
+    "version": "0.5.0",
+    "description": "AI-Powered Personalized Learning Assistant with multi-agent collaboration and RAG",
+    "repository": "https://github.com/HKUDS/DeepTutor",
+    "license": "AGPL-3.0"
+  },
+  "tech_stack": {
+    "backend": {
+      "language": "python",
+      "version": "3.10+",
+      "framework": "fastapi",
+      "packages": [
+        "uvicorn",
+        "pydantic",
+        "openai",
+        "anthropic",
+        "dashscope"
+      ]
+    },
+    "frontend": {
+      "framework": "next.js",
+      "version": "16",
+      "ui_library": "react",
+      "react_version": "19",
+      "styling": "tailwindcss",
+      "language": "typescript"
+    },
+    "database": {
+      "type": "vector-store",
+      "embedding_storage": "json-based",
+      "knowledge_base": "data/knowledge_bases/"
+    },
+    "deployment": {
+      "containerization": "docker",
+      "orchestration": "docker-compose"
+    },
+    "tools": {
+      "linting": ["ruff", "eslint"],
+      "formatting": ["black", "prettier"],
+      "type_checking": ["mypy", "typescript"],
+      "security": ["bandit", "detect-secrets", "pip-audit"],
+      "testing": ["pytest", "playwright"]
+    }
+  },
+  "architecture": {
+    "backend_structure": {
+      "src/agents/": "Multi-agent AI system (7 modules: solve, question, research, guide, co_writer, ideagen, chat)",
+      "src/api/": "FastAPI REST API endpoints with routers",
+      "src/services/": "Core services (llm, embedding, rag, search, tts, prompt, config, settings, setup)",
+      "src/tools/": "Agent tools (rag_tool, web_search, code_executor, paper_search, query_item)",
+      "src/knowledge/": "Knowledge base management",
+      "src/utils/": "Utility functions",
+      "src/logging/": "Structured logging"
+    },
+    "frontend_structure": {
+      "web/app/": "Next.js App Router pages (11 pages)",
+      "web/components/": "Reusable React components",
+      "web/context/": "React Context providers",
+      "web/hooks/": "Custom React hooks",
+      "web/lib/": "Utility libraries",
+      "web/types/": "TypeScript definitions",
+      "web/locales/": "i18n translations"
+    }
+  },
+  "api_endpoints": [
+    {
+      "path": "/solve",
+      "method": "POST",
+      "explained": "Problem solving with multi-agent collaboration"
+    },
+    {
+      "path": "/ws/solve",
+      "method": "WebSocket",
+      "explained": "Real-time streaming for problem solving"
+    },
+    {
+      "path": "/question/custom",
+      "method": "POST",
+      "explained": "Generate custom questions from knowledge base"
+    },
+    {
+      "path": "/question/mimic",
+      "method": "POST",
+      "explained": "Generate questions mimicking exam style"
+    },
+    {
+      "path": "/knowledge",
+      "method": "GET/POST/DELETE",
+      "explained": "CRUD operations for knowledge bases"
+    },
+    {
+      "path": "/research",
+      "method": "POST",
+      "explained": "Deep research with multi-source integration"
+    },
+    {
+      "path": "/guide/session",
+      "method": "POST/GET",
+      "explained": "Guided learning session management"
+    },
+    {
+      "path": "/co_writer/edit",
+      "method": "POST",
+      "explained": "AI-assisted document editing"
+    },
+    {
+      "path": "/co_writer/narrate",
+      "method": "POST",
+      "explained": "TTS narration generation"
+    }
+  ],
+  "features": [
+    {
+      "name": "Smart Solver",
+      "status": "implemented",
+      "description": "Multi-agent problem solving with dual-loop architecture (Analysis + Solve)"
+    },
+    {
+      "name": "Question Generator",
+      "status": "implemented",
+      "description": "Custom and mimic-mode question generation with validation"
+    },
+    {
+      "name": "Deep Research",
+      "status": "implemented",
+      "description": "DR-in-KG with dynamic topic queue and three-phase workflow"
+    },
+    {
+      "name": "Guided Learning",
+      "status": "implemented",
+      "description": "Personalized learning with interactive HTML pages"
+    },
+    {
+      "name": "Co-Writer",
+      "status": "implemented",
+      "description": "AI-assisted markdown editor with TTS"
+    },
+    {
+      "name": "IdeaGen",
+      "status": "implemented",
+      "description": "Automated idea generation with brainstorming"
+    },
+    {
+      "name": "Knowledge Base",
+      "status": "implemented",
+      "description": "Document ingestion and vector search"
+    }
+  ],
+  "agents": {
+    "solve": {
+      "agents": ["InvestigateAgent", "NoteAgent", "PlanAgent", "ManagerAgent", "SolveAgent", "CheckAgent"],
+      "tools": ["RAG", "WebSearch", "CodeExecution"]
+    },
+    "question": {
+      "agents": ["QuestionGenerationAgent"],
+      "modes": ["custom", "mimic"]
+    },
+    "research": {
+      "agents": ["RephraseAgent", "DecomposeAgent", "ManagerAgent", "ResearchAgent", "NoteAgent"],
+      "phases": ["Planning", "Researching", "Reporting"]
+    },
+    "guide": {
+      "agents": ["LocateAgent", "InteractiveAgent", "ChatAgent", "SummaryAgent"]
+    },
+    "co_writer": {
+      "agents": ["EditAgent", "NarratorAgent"],
+      "operations": ["Rewrite", "Shorten", "Expand", "AutoMark", "Narrate"]
+    }
+  },
+  "knowledge_items": {
+    "patterns": [
+      "Multi-agent collaboration for complex tasks",
+      "Dual-loop architecture (Analysis + Solve)",
+      "Dynamic Topic Queue for research",
+      "RAG with hybrid retrieval",
+      "WebSocket streaming for real-time updates"
+    ],
+    "conventions": [
+      "Type hints required for all Python functions",
+      "Google-style docstrings",
+      "F-strings for string formatting",
+      "PEP 8 enforced via Ruff/Black",
+      "100 character line limit"
+    ],
+    "gotchas": [
+      "Pre-commit hooks required before PR",
+      "Branch from dev, PR to dev (not main)",
+      "Demo KBs use text-embedding-3-large with dimensions=3072"
+    ]
+  },
+  "environment_variables": {
+    "required": [
+      "LLM_MODEL",
+      "LLM_API_KEY",
+      "LLM_HOST",
+      "EMBEDDING_MODEL",
+      "EMBEDDING_API_KEY",
+      "EMBEDDING_HOST"
+    ],
+    "optional": [
+      "BACKEND_PORT (default: 8001)",
+      "FRONTEND_PORT (default: 3782)",
+      "SEARCH_PROVIDER",
+      "SEARCH_API_KEY",
+      "TTS_*"
+    ]
+  },
+  "commands": {
+    "install": "python scripts/install_all.py",
+    "run": "python scripts/start_web.py",
+    "run_cli": "python scripts/start.py",
+    "run_backend": "python src/api/run_server.py",
+    "run_frontend": "cd web && npm run dev -- -p 3782",
+    "test": "pytest tests/ -v",
+    "lint": "pre-commit run --all-files",
+    "docker_up": "docker compose up",
+    "docker_down": "docker compose down"
+  }
+}
