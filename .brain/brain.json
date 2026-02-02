@@ -41,14 +41,61 @@
     },
     "deployment": {
       "containerization": "docker",
-      "orchestration": "docker-compose"
+      "orchestration": "docker-compose",
+      "cloud_run": {
+        "enabled": true,
+        "gcp_project": "deeptutor-gcp",
+        "region": "asia-southeast1",
+        "service_name": "deeptutor",
+        "url": "https://deeptutor-sc724q4nha-as.a.run.app",
+        "resources": {
+          "memory": "8Gi",
+          "cpu": "4",
+          "min_instances": 1,
+          "max_instances": 3,
+          "startup_timeout": "240s",
+          "request_timeout": "300s"
+        },
+        "files": [
+          "Dockerfile.cloudrun",
+          "cloudbuild.yaml",
+          "nginx.cloudrun.conf",
+          "scripts/entrypoint.cloudrun.sh"
+        ],
+        "secrets": [
+          "LLM_API_KEY",
+          "EMBEDDING_API_KEY",
+          "SEARCH_API_KEY"
+        ]
+      }
+    },
+    "git": {
+      "origin": "https://github.com/CaoDangVietMy/DeepTutor.git",
+      "upstream": "https://github.com/HKUDS/DeepTutor.git",
+      "sync_guide": "docs/upstream-sync-guide.md"
     },
     "tools": {
-      "linting": ["ruff", "eslint"],
-      "formatting": ["black", "prettier"],
-      "type_checking": ["mypy", "typescript"],
-      "security": ["bandit", "detect-secrets", "pip-audit"],
-      "testing": ["pytest", "playwright"]
+      "linting": [
+        "ruff",
+        "eslint"
+      ],
+      "formatting": [
+        "black",
+        "prettier"
+      ],
+      "type_checking": [
+        "mypy",
+        "typescript"
+      ],
+      "security": [
+        "bandit",
+        "detect-secrets",
+        "pip-audit"
+      ],
+      "testing": [
+        "pytest",
+        "playwright"
+      ]
     }
   },
   "architecture": {
@@ -157,23 +204,63 @@
   ],
   "agents": {
     "solve": {
-      "agents": ["InvestigateAgent", "NoteAgent", "PlanAgent", "ManagerAgent", "SolveAgent", "CheckAgent"],
-      "tools": ["RAG", "WebSearch", "CodeExecution"]
+      "agents": [
+        "InvestigateAgent",
+        "NoteAgent",
+        "PlanAgent",
+        "ManagerAgent",
+        "SolveAgent",
+        "CheckAgent"
+      ],
+      "tools": [
+        "RAG",
+        "WebSearch",
+        "CodeExecution"
+      ]
     },
     "question": {
-      "agents": ["QuestionGenerationAgent"],
-      "modes": ["custom", "mimic"]
+      "agents": [
+        "QuestionGenerationAgent"
+      ],
+      "modes": [
+        "custom",
+        "mimic"
+      ]
     },
     "research": {
-      "agents": ["RephraseAgent", "DecomposeAgent", "ManagerAgent", "ResearchAgent", "NoteAgent"],
-      "phases": ["Planning", "Researching", "Reporting"]
+      "agents": [
+        "RephraseAgent",
+        "DecomposeAgent",
+        "ManagerAgent",
+        "ResearchAgent",
+        "NoteAgent"
+      ],
+      "phases": [
+        "Planning",
+        "Researching",
+        "Reporting"
+      ]
     },
     "guide": {
-      "agents": ["LocateAgent", "InteractiveAgent", "ChatAgent", "SummaryAgent"]
+      "agents": [
+        "LocateAgent",
+        "InteractiveAgent",
+        "ChatAgent",
+        "SummaryAgent"
+      ]
     },
     "co_writer": {
-      "agents": ["EditAgent", "NarratorAgent"],
-      "operations": ["Rewrite", "Shorten", "Expand", "AutoMark", "Narrate"]
+      "agents": [
+        "EditAgent",
+        "NarratorAgent"
+      ],
+      "operations": [
+        "Rewrite",
+        "Shorten",
+        "Expand",
+        "AutoMark",
+        "Narrate"
+      ]
     }
   },
   "knowledge_items": {
