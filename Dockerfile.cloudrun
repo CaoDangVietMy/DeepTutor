@@ -28,9 +28,10 @@ RUN npm ci --legacy-peer-deps
 # Copy frontend source code
 COPY web/ ./
 
-# Create .env.local with placeholder that will be replaced at runtime
-# For Cloud Run, API calls go through nginx proxy on same origin
-RUN echo "NEXT_PUBLIC_API_BASE=/api" > .env.local
+# Create .env.local for production
+# For Cloud Run, frontend and backend are on same origin via nginx proxy
+# So we use empty base URL (relative paths work automatically)
+RUN echo "NEXT_PUBLIC_API_BASE=" > .env.local
 
 # Build Next.js for production with standalone output
 RUN npm run build
