@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.0",
-    "last_updated": "2026-01-26T14:50:00+07:00"
+    "last_updated": "2026-02-03T16:51:00+07:00"
   },
   "project": {
     "name": "DeepTutor",
@@ -281,7 +281,11 @@
     "gotchas": [
       "Pre-commit hooks required before PR",
       "Branch from dev, PR to dev (not main)",
-      "Demo KBs use text-embedding-3-large with dimensions=3072"
+      "Demo KBs use text-embedding-3-large with dimensions=3072",
+      "NEXT_PUBLIC_API_BASE must be empty string for same-origin Cloud Run deployment",
+      "nginx proxy_pass must NOT have trailing slash to preserve /api prefix",
+      "WebSocket endpoints need Upgrade and Connection headers in nginx config",
+      "Backend cold start takes ~60-80s - use min-instances=1 on Cloud Run"
     ]
   },
   "environment_variables": {
